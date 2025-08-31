@@ -60,28 +60,26 @@ impl App {
         self.selected_index().and_then(|i| self.entries.get(i))
     }
 
-    fn next(&mut self) {
-        if self.entries.is_empty() {
+    pub fn move_by(&mut self, delta: isize) {
+        let len = self.entries.len();
+        if len == 0 {
             self.list_state.select(None);
             return;
         }
-        let i = match self.list_state.selected() {
-            Some(i) if i + 1 < self.entries.len() => i + 1,
-            _ => 0,
-        };
-        self.list_state.select(Some(i));
+        let start = self.list_state.selected().unwrap_or(0) as isize;
+        let len_i = len as isize;
+
+        // Proper wrap for negative/positive deltas
+        let idx = (start + delta).rem_euclid(len_i) as usize;
+        self.list_state.select(Some(idx));
     }
 
-    fn previous(&mut self) {
-        if self.entries.is_empty() {
-            self.list_state.select(None);
-            return;
-        }
-        let i = match self.list_state.selected() {
-            Some(0) | None => self.entries.len() - 1,
-            Some(i) => i - 1,
-        };
-        self.list_state.select(Some(i));
+    pub fn next(&mut self) {
+        self.move_by(1);
+    }
+
+    pub fn prev(&mut self) {
+        self.move_by(-1);
     }
 
     fn enter(&mut self) -> Result<()> {
@@ -89,7 +87,6 @@ impl App {
             if e.is_dir {
                 // end borrow before mutating self
                 let path = e.path.clone();
-                drop(e);
                 self.cwd = path;
                 self.reload_entries()?;
                 self.list_state.select(Some(0));
@@ -161,7 +158,7 @@ fn run_app(
                 match k.code {
                     KeyCode::Char('q') | KeyCode::Esc => break,
                     KeyCode::Down | KeyCode::Char('j') => app.next(),
-                    KeyCode::Up | KeyCode::Char('k') => app.previous(),
+                    KeyCode::Up | KeyCode::Char('k') => app.prev(),
                     KeyCode::Backspace => app.up_dir()?,
                     KeyCode::Char('r') => app.reload_entries()?,
                     KeyCode::Char(' ') => app.toggle_mark(),

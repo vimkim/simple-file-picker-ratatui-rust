@@ -1,7 +1,10 @@
+build:
+    cargo build
+
 run:
     cargo run
 
-run-binary:
+run-binary: build
     target/debug/simple-file-picker-ratatui-rust
 
 cgdb:
